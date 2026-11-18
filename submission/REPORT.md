@@ -54,7 +54,13 @@ Tổng cộng máy thực hiện **35 thay đổi** (`03_fixes.csv`: 20 `drop_li
 (Lỗi tự thấy khi xem `viz_labels.py`: `img_0001` dòng 3 vẽ trùng box dòng 1; `img_0030` dòng 9 box tràn mép trái 0.023; TODO: thêm 1 lỗi bạn tự thấy.)
 
 ## 5. Train: raw vs clean (tùy chọn, chấm riêng)
-**Chưa chạy.** Tôi ưu tiên hoàn thành phần lõi (pipeline, calibration, báo cáo) trước; phần train trên Colab sẽ làm sau.
+| biến thể | #ảnh train | số seed | map50 (TB ± độ lệch) | map50_95 (TB ± độ lệch) | precision (TB ± độ lệch) | recall (TB ± độ lệch) |
+|---|---|---|---|---|---|---|
+| raw | 224 | 2 | 0.726 ± 0.000 | 0.512 ± 0.004 | 0.764 ± 0.061 | 0.649 ± 0.028 |
+| clean | 202 | 2 | 0.701 ± 0.025 | 0.487 ± 0.008 | 0.759 ± 0.003 | 0.625 ± 0.019 |
+
+Chênh mAP50 (clean − raw) = **-0.025**.
+
 
 ## 6. Quyết định và ghi chú AI
 **(a)** Quyết định: **Hold**. `clean_v1` chỉ dùng để thử nghiệm, chưa phát hành. Để thành **Release** cần: (1) tăng ngân sách duyệt để người xem thêm ít nhất khoảng 18 ảnh trong 45 ảnh còn lại của hàng đợi, sao cho số ảnh còn cảnh báo < 21/202; (2) chạy lại `make run`, kiểm tra 0 ERROR và tỉ lệ cảnh báo < 10%. Không được nới `conf` chỉ để gate im lặng.
