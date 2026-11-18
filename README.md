@@ -41,7 +41,7 @@ Bạn sẽ **tự viết 4 module** (`label_format`, `second_opinion`, `autofix`
 4. `make run` (kết luận Release/Hold/Rework). **Tùy chọn, chấm riêng 15 điểm:** push rồi train trên Colab ([docs/COLAB.md](docs/COLAB.md), ~20 phút chạy nền).
 5. Viết `submission/REPORT.md` (1–2 trang), `make check-core` hết LỖI → nộp (đã train thì `make check`).
 
-> **Khi nộp:** đổi dòng tiêu đề README thành `# Day 09 Lab — <Họ và tên>: 2A202603354 - Nguyễn Tiến Thịnh
+> **Khi nộp:** đổi dòng tiêu đề README thành `# # Day 09 Lab — Nguyễn Văn A: 2A202603354 - Nguyễn Tiến Thịnh  
 > Windows không có `make`: chạy thẳng lệnh `python ...` trong [Makefile](Makefile). Mã thoát `python -m pipeline.run`: 0 Release · 10 Hold · 20 Rework · 30 tạm dừng chờ người duyệt.
 
 <details>
