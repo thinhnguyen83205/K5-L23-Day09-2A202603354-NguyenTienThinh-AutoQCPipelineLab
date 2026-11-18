@@ -21,9 +21,69 @@ Gợi ý
 - `iou_xywh(a, b)` có sẵn trong common.py.
 - Ngưỡng nằm trong `cfg["label_format"]` — đừng viết cứng số vào code.
 """
-from ..common import ERROR, WARN, Issue, iou_xywh, parse_yolo_line  # noqa: F401
+"""CHECK 2 — Dòng nhãn YOLO: sai định dạng, ID lớp lạ, box tràn ảnh, box rỗng, box lặp."""
+from ..common import ERROR, WARN, Issue, iou_xywh, parse_yolo_line
 
 
 def run(ds, cfg):
-    # TODO: duyệt từng file nhãn, từng dòng
-    raise NotImplementedError("check label_format chưa làm")
+    lf = cfg["label_format"]                      # đọc ngưỡng từ cấu hình, KHÔNG viết cứng
+    tol, min_px = lf["overflow_tol"], lf["min_box_px"]
+    max_frac, dup_iou = lf["max_box_frac"], lf["dup_box_iou"]
+    n_cls = len(ds.classes)                       # = 4 lớp
+    issues = []
+
+    for lab in ds.label_files():                  # duyệt từng file .txt
+        stem = lab.stem                           # "img_0001.txt" -> "img_0001"
+        size = ds.image_size(stem)                # (rộng, cao) px, None nếu ảnh hỏng
+        seen = []                                 # box hợp lệ đã gặp, để bắt DUP_BOX
+
+        for ln_no, text in ds.read_label_lines(stem) or []:
+
+            def add(sev, code, msg, **extra):
+                issues.append(Issue("label_format", sev, code, stem, msg, ln_no, extra))
+
+            # (1) Đủ 5 cột số chưa?
+            try:
+                c, x, y, w, h = parse_yolo_line(text)
+            except ValueError as e:
+                add(ERROR, "BAD_FORMAT", f"dòng sai định dạng: {e}")
+                continue
+
+            # (2) ID lớp có trong 0..3?
+            if not 0 <= c < n_cls:
+                add(ERROR, "BAD_CLASS_ID", f"id lớp {c} ngoài 0..{n_cls - 1}")
+                continue
+
+            # (3) Box rỗng?
+            if w <= 0 or h <= 0:
+                add(ERROR, "BOX_ZERO", f"box rộng/cao bằng 0 (w={w}, h={h})")
+                continue
+
+            # (4) Tràn ra ngoài ảnh? Lấy mức tràn lớn nhất của 4 mép
+            overflow = max(0.0,
+                           -(x - w / 2),          # mép trái
+                           (x + w / 2) - 1,       # mép phải
+                           -(y - h / 2),          # mép trên
+                           (y + h / 2) - 1)       # mép dưới
+            if overflow > tol:
+                add(ERROR, "BOX_OUT_OF_IMAGE", f"box tràn ảnh {overflow:.4f}",
+                    overflow=round(overflow, 6))
+
+            # (5) Trùng box cùng lớp ở dòng trước?
+            box = (x, y, w, h)
+            if any(pc == c and iou_xywh(pb, box) > dup_iou for pc, pb in seen):
+                add(ERROR, "DUP_BOX", "box trùng với một dòng trước đó")
+            seen.append((c, box))
+
+            # (6) Quá nhỏ? (cạnh ngắn tính bằng pixel)
+            if size:
+                W, H = size
+                short = min(w * W, h * H)
+                if short < min_px:
+                    add(WARN, "BOX_TINY", f"cạnh ngắn {short:.1f}px < {min_px}px")
+
+            # (7) Quá to?
+            if w * h > max_frac:
+                add(WARN, "BOX_HUGE", f"box phủ {w*h:.0%} ảnh")
+
+    return issues
